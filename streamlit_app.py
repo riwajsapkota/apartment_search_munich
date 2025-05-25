@@ -53,7 +53,7 @@ class RealEstateScraper:
         time.sleep(random.uniform(self.min_delay, self.max_delay))
     
     def scrape_immobilienscout24(self, city, max_price=MAX_PRICE, min_rooms=MIN_ROOMS, min_area=MIN_AREA):
-        """Enhanced ImmoScout24 scraper"""
+        """Enhanced ImmoScout24 scraper with better error handling"""
         apartments = []
         
         try:
@@ -66,7 +66,6 @@ class RealEstateScraper:
                 geocodes = '1276002000'  # Augsburg geocode
             
             # Build the search URL with proper parameters
-            base_url = "https://www.immobilienscout24.de/Suche/de"
             search_params = {
                 'objecttypes': 'apartment',
                 'imprinttype': 'buy',
@@ -92,7 +91,7 @@ class RealEstateScraper:
                 try:
                     st.info(f"Trying ImmoScout24 URL: {base_url}")
                     
-                    for page in range(1, 3):
+                    for page in range(1, 2):  # Just try first page
                         search_params['pagenumber'] = page
                         
                         response = self.session.get(base_url, params=search_params, timeout=15)
@@ -126,12 +125,9 @@ class RealEstateScraper:
                             
                             if not listings:
                                 st.warning(f"No listings found on page {page}")
-                                # Show some of the page structure for debugging
-                                divs = soup.find_all('div', limit=10)
-                                st.info(f"Found {len(divs)} div elements on page")
                                 continue
                             
-                            for listing in listings[:10]:  # Limit to first 10 per page
+                            for listing in listings[:5]:  # Limit to first 5 per page
                                 try:
                                     apartment = self.parse_immoscout_listing_enhanced(listing, city)
                                     if apartment and self.meets_criteria(apartment):
@@ -140,6 +136,18 @@ class RealEstateScraper:
                                 except Exception as e:
                                     st.warning(f"Error parsing listing: {str(e)}")
                                     continue
+                        elif response.status_code == 401:
+                            st.warning(f"⚠️ Access denied (401) for {base_url}")
+                            st.info("ImmoScout24 is blocking automated access. This is common with real estate sites.")
+                            break  # No point trying more pages with same URL
+                        elif response.status_code == 403:
+                            st.warning(f"⚠️ Forbidden (403) for {base_url}")
+                            st.info("ImmoScout24 detected bot activity. Consider using their official API.")
+                            break
+                        elif response.status_code == 429:
+                            st.warning(f"⚠️ Rate limited (429) for {base_url}")
+                            st.info("Too many requests. Waiting longer between requests...")
+                            time.sleep(10)
                         else:
                             st.warning(f"HTTP {response.status_code} for {base_url}")
                         
@@ -151,6 +159,22 @@ class RealEstateScraper:
                 except Exception as e:
                     st.error(f"Error with URL pattern {base_url}: {str(e)}")
                     continue
+            
+            # If no apartments found, explain why and suggest alternatives
+            if not apartments:
+                st.error("❌ ImmoScout24 scraping failed - site is blocking automated access")
+                st.info("""
+                **Why this happens:**
+                - Real estate sites have strong anti-bot protection
+                - They require human verification (CAPTCHAs)
+                - IP-based blocking for automated requests
+                
+                **Recommended alternatives:**
+                1. Use ImmoScout24's official API (paid)
+                2. Use Selenium with human-like behavior
+                3. Use proxy services like ScrapingBee
+                4. Enable 'Test Mode' to see UI functionality
+                """)
                     
         except Exception as e:
             st.error(f"Error scraping ImmoScout24 for {city}: {str(e)}")
@@ -352,14 +376,18 @@ def main():
         **Current Status**: Enhanced scraper with better error handling and mock data fallback.
         
         **Known Issues**:
-        - Real estate sites use anti-bot protection
+        - Real estate sites use strong anti-bot protection (401/403 errors)
+        - ImmoScout24 blocks automated requests
         - JavaScript-heavy sites need browser automation
         - Mock data is provided for testing UI functionality
         
-        **Next Steps**:
-        - Implement Selenium/Playwright for JS-heavy sites
-        - Add proxy rotation
-        - Implement CAPTCHA handling
+        **Solutions for Production**:
+        1. **Official APIs**: ImmoScout24 offers paid API access
+        2. **Browser Automation**: Selenium/Playwright with proxy rotation
+        3. **Commercial Services**: ScrapingBee, Bright Data, etc.
+        4. **Alternative Sources**: Smaller sites with less protection
+        
+        **Current Recommendation**: Use Test Mode to explore the UI, then implement official APIs for production.
         """)
     
     # Sidebar for controls
