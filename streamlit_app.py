@@ -10,7 +10,6 @@ import plotly.graph_objects as go
 from urllib.parse import urljoin, quote, urlencode
 import json
 import random
-from fake_useragent import UserAgent
 
 # Configuration
 MAX_PRICE = 750000
@@ -20,12 +19,14 @@ CITIES = ['München', 'Augsburg']
 
 class RealEstateScraper:
     def __init__(self):
-        # Rotate user agents to avoid detection
-        try:
-            ua = UserAgent()
-            user_agent = ua.random
-        except:
-            user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        # Use a list of realistic user agents
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15'
+        ]
+        user_agent = random.choice(user_agents)
         
         self.headers = {
             'User-Agent': user_agent,
