@@ -1,4 +1,4 @@
-# 🎈 Blank app template
+# 🎈 apartment search app
 
 A simple Streamlit app template for you to modify!
 
